@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A static play-money casino simulator for GitHub Pages.">
+    <title>Casino Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar" aria-label="Casino status">
+        <div>
+          <p class="eyebrow">Play-money simulator</p>
+          <h1>Casino Simulator</h1>
+        </div>
+        <div class="wallet" aria-live="polite">
+          <span>Balance</span>
+          <strong id="balance">$1,000</strong>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button" id="muteBtn" type="button" title="Toggle sounds" aria-label="Toggle sounds">♪</button>
+          <button class="secondary-button" id="resetBtn" type="button">Reset</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="table-section" aria-label="Game selection and table">
+          <nav class="game-tabs" aria-label="Games">
+            <button class="tab active" type="button" data-game="slots">Slots</button>
+            <button class="tab" type="button" data-game="blackjack">Blackjack</button>
+            <button class="tab" type="button" data-game="roulette">Roulette</button>
+            <button class="tab" type="button" data-game="craps">Craps</button>
+            <button class="tab" type="button" data-game="baccarat">Baccarat</button>
+            <button class="tab" type="button" data-game="poker">Poker</button>
+          </nav>
+
+          <div class="bet-panel">
+            <label for="betAmount">Bet</label>
+            <div class="bet-controls">
+              <button class="chip" type="button" data-chip="10">$10</button>
+              <button class="chip" type="button" data-chip="25">$25</button>
+              <button class="chip" type="button" data-chip="50">$50</button>
+              <button class="chip" type="button" data-chip="100">$100</button>
+              <input id="betAmount" min="1" step="1" value="25" type="number" inputmode="numeric">
+              <button class="secondary-button" id="maxBetBtn" type="button">Max</button>
+            </div>
+          </div>
+
+          <section class="game active" id="slotsGame" aria-labelledby="slotsTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">3-reel machine</p>
+                <h2 id="slotsTitle">Slots</h2>
+              </div>
+              <p class="odds">Top prize: 20x</p>
+            </div>
+            <div class="slot-machine" aria-live="polite">
+              <div class="reel" id="reelA">🍒</div>
+              <div class="reel" id="reelB">7</div>
+              <div class="reel" id="reelC">★</div>
+            </div>
+            <div class="paytable" aria-label="Slot paytable">
+              <span>Three 7s: 20x</span>
+              <span>Three same: 8x</span>
+              <span>Two same: 2x</span>
+            </div>
+            <button class="primary-button" id="spinBtn" type="button">Spin</button>
+          </section>
+
+          <section class="game" id="blackjackGame" aria-labelledby="blackjackTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">Dealer stands on 17</p>
+                <h2 id="blackjackTitle">Blackjack</h2>
+              </div>
+              <p class="odds">Blackjack pays 3:2</p>
+            </div>
+            <div class="blackjack-layout">
+              <div class="hand-area">
+                <div class="hand-label"><span>Dealer</span><strong id="dealerScore">0</strong></div>
+                <div class="cards" id="dealerCards" aria-live="polite"></div>
+              </div>
+              <div class="hand-area">
+                <div class="hand-label"><span>You</span><strong id="playerScore">0</strong></div>
+                <div class="cards" id="playerCards" aria-live="polite"></div>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="primary-button" id="dealBtn" type="button">Deal</button>
+              <button class="secondary-button" id="hitBtn" type="button" disabled>Hit</button>
+              <button class="secondary-button" id="standBtn" type="button" disabled>Stand</button>
+            </div>
+          </section>
+
+          <section class="game" id="rouletteGame" aria-labelledby="rouletteTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">European wheel</p>
+                <h2 id="rouletteTitle">Roulette</h2>
+              </div>
+              <p class="odds">Single zero</p>
+            </div>
+            <div class="roulette-wheel" id="rouletteWheel" aria-live="polite">
+              <div class="wheel-pointer"></div>
+              <div class="wheel-center" id="rouletteResult">0</div>
+            </div>
+            <div class="roulette-bets" aria-label="Roulette bet type">
+              <button class="choice active" type="button" data-roulette="red">Red</button>
+              <button class="choice" type="button" data-roulette="black">Black</button>
+              <button class="choice" type="button" data-roulette="even">Even</button>
+              <button class="choice" type="button" data-roulette="odd">Odd</button>
+              <button class="choice" type="button" data-roulette="number">Number</button>
+              <input id="rouletteNumber" min="0" max="36" value="17" type="number" inputmode="numeric" aria-label="Roulette number">
+            </div>
+            <button class="primary-button" id="rouletteSpinBtn" type="button">Spin Wheel</button>
+          </section>
+
+          <section class="game" id="crapsGame" aria-labelledby="crapsTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">Pass line</p>
+                <h2 id="crapsTitle">Craps</h2>
+              </div>
+              <p class="odds">Point: <strong id="crapsPoint">Off</strong></p>
+            </div>
+            <div class="dice-table" aria-live="polite">
+              <div class="die" id="dieA">1</div>
+              <div class="die" id="dieB">1</div>
+            </div>
+            <p class="game-note" id="crapsHint">Come-out roll: 7 or 11 wins, 2, 3, or 12 loses.</p>
+            <button class="primary-button" id="rollBtn" type="button">Roll Dice</button>
+          </section>
+
+          <section class="game" id="baccaratGame" aria-labelledby="baccaratTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">Punto banco</p>
+                <h2 id="baccaratTitle">Baccarat</h2>
+              </div>
+              <p class="odds">Tie pays 8:1</p>
+            </div>
+            <div class="baccarat-bets" aria-label="Baccarat bet type">
+              <button class="choice active" type="button" data-baccarat="player">Player</button>
+              <button class="choice" type="button" data-baccarat="banker">Banker</button>
+              <button class="choice" type="button" data-baccarat="tie">Tie</button>
+            </div>
+            <div class="blackjack-layout">
+              <div class="hand-area">
+                <div class="hand-label"><span>Player</span><strong id="baccaratPlayerScore">0</strong></div>
+                <div class="cards" id="baccaratPlayerCards" aria-live="polite"></div>
+              </div>
+              <div class="hand-area">
+                <div class="hand-label"><span>Banker</span><strong id="baccaratBankerScore">0</strong></div>
+                <div class="cards" id="baccaratBankerCards" aria-live="polite"></div>
+              </div>
+            </div>
+            <button class="primary-button" id="baccaratDealBtn" type="button">Deal Baccarat</button>
+          </section>
+
+          <section class="game" id="pokerGame" aria-labelledby="pokerTitle">
+            <div class="game-heading">
+              <div>
+                <p class="eyebrow">Jacks or better</p>
+                <h2 id="pokerTitle">Video Poker</h2>
+              </div>
+              <p class="odds">Royal flush: 250x</p>
+            </div>
+            <div class="cards poker-hand" id="pokerCards" aria-live="polite"></div>
+            <div class="paytable poker-paytable" aria-label="Poker paytable">
+              <span>Royal 250x</span>
+              <span>Straight flush 50x</span>
+              <span>Four 25x</span>
+              <span>Full house 9x</span>
+              <span>Flush 6x</span>
+              <span>Straight 4x</span>
+              <span>Three 3x</span>
+              <span>Two pair 2x</span>
+              <span>Jacks+ 1x</span>
+            </div>
+            <div class="action-row">
+              <button class="primary-button" id="pokerDealBtn" type="button">Deal</button>
+              <button class="secondary-button" id="pokerDrawBtn" type="button" disabled>Draw</button>
+            </div>
+          </section>
+        </section>
+
+        <aside class="side-panel" aria-label="Session details">
+          <section class="stats">
+            <h2>Session</h2>
+            <div class="stat-grid">
+              <div><span>Wagered</span><strong id="wagered">$0</strong></div>
+              <div><span>Won</span><strong id="won">$0</strong></div>
+              <div><span>Games</span><strong id="gamesPlayed">0</strong></div>
+              <div><span>Best Win</span><strong id="bestWin">$0</strong></div>
+            </div>
+          </section>
+          <section class="message-board">
+            <h2>Table Log</h2>
+            <p id="message">Pick a game and place a bet. This is play money only.</p>
+            <ol id="history" aria-label="Recent results"></ol>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <canvas id="celebrationCanvas" aria-hidden="true"></canvas>
+    <script src="app.js"></script>
+  </body>
+</html>
