@@ -682,6 +682,64 @@ input {
   padding: 18px;
 }
 
+.admin-panel {
+  border-color: rgba(243, 195, 91, 0.46);
+}
+
+.admin-form {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+
+.admin-form label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-form input,
+.admin-form .primary-button {
+  width: 100%;
+  margin: 0;
+}
+
+.admin-form .primary-button {
+  grid-column: 1 / -1;
+}
+
+.admin-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  margin-top: 12px;
+}
+
+.admin-user {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #121613;
+  color: var(--muted);
+  padding: 10px;
+  text-align: left;
+}
+
+.admin-user strong {
+  color: var(--text);
+}
+
+.admin-user span {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

@@ -238,6 +238,24 @@
         </section>
 
         <aside class="side-panel" aria-label="Session details">
+          <section class="admin-panel" id="adminPanel" hidden>
+            <h2>Admin</h2>
+            <div class="stat-grid admin-totals">
+              <div><span>Users</span><strong id="adminUsers">0</strong></div>
+              <div><span>Wagered</span><strong id="adminWagered">$0</strong></div>
+              <div><span>Won</span><strong id="adminWon">$0</strong></div>
+              <div><span>Balance</span><strong id="adminBalance">$0</strong></div>
+            </div>
+            <form class="admin-form" id="adminMoneyForm">
+              <label for="adminUsername">User</label>
+              <input id="adminUsername" autocomplete="off" type="text">
+              <label for="adminAmount">Amount</label>
+              <input id="adminAmount" min="1" step="1" type="number" value="100">
+              <button class="primary-button" type="submit">Add Money</button>
+            </form>
+            <p class="auth-error" id="adminMessage" aria-live="polite"></p>
+            <div class="admin-list" id="adminList" aria-label="Admin user list"></div>
+          </section>
           <section class="stats">
             <h2>Session</h2>
             <div class="stat-grid">

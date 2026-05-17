@@ -2,6 +2,7 @@ const STARTING_BALANCE = 1000;
 const STORAGE_KEY = "casino-simulator-state-v1";
 const SESSION_KEY = "casino-simulator-session-v1";
 const API_TOKEN_KEY = "casino-simulator-api-token-v1";
+const ADMIN_SESSION_KEY = "casino-simulator-admin-session-v1";
 const AGE_KEY = "casino-simulator-age-ok-v1";
 const API_URL = (window.CASINO_API_URL || "").replace(/\/$/, "");
 const suits = ["♠", "♥", "♦", "♣"];
@@ -15,6 +16,8 @@ let activeGame = "slots";
 let blackjack = { deck: [], player: [], dealer: [], bet: 0, active: false, holeHidden: true };
 let craps = { point: 0, bet: 0 };
 let poker = { deck: [], hand: [], holds: [], bet: 0, active: false };
+let currentUserIsAdmin = false;
+let saveTimer = 0;
 let muted = false;
 
 const els = {
@@ -78,6 +81,16 @@ const els = {
   verificationCode: document.querySelector("#verificationCode"),
   verifyError: document.querySelector("#verifyError"),
   backToLoginBtn: document.querySelector("#backToLoginBtn"),
+  adminPanel: document.querySelector("#adminPanel"),
+  adminUsers: document.querySelector("#adminUsers"),
+  adminWagered: document.querySelector("#adminWagered"),
+  adminWon: document.querySelector("#adminWon"),
+  adminBalance: document.querySelector("#adminBalance"),
+  adminMoneyForm: document.querySelector("#adminMoneyForm"),
+  adminUsername: document.querySelector("#adminUsername"),
+  adminAmount: document.querySelector("#adminAmount"),
+  adminMessage: document.querySelector("#adminMessage"),
+  adminList: document.querySelector("#adminList"),
   canvas: document.querySelector("#celebrationCanvas")
 };
 
@@ -112,16 +125,31 @@ function loadState(username = currentUser) {
 
 function saveState() {
   if (currentUser) localStorage.setItem(userStateKey(currentUser), JSON.stringify(state));
+  syncStateToBackend();
 }
 
 function encodePassword(password) {
   return btoa(unescape(encodeURIComponent(password)));
 }
 
-async function apiRequest(path, body) {
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+async function apiRequest(path, body = {}, options = {}) {
+  const headers = { "Content-Type": "application/json" };
+  const token = localStorage.getItem(API_TOKEN_KEY);
+  if (options.auth && token) headers.Authorization = `Bearer ${token}`;
+
   const response = await fetch(`${API_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body)
   });
   const data = await response.json().catch(() => ({}));
@@ -167,23 +195,31 @@ function closeGate() {
   document.body.classList.remove("locked");
 }
 
-function startSession(username) {
+function startSession(user, remoteState = null) {
+  const username = typeof user === "string" ? user : user.username;
   currentUser = username;
+  currentUserIsAdmin = Boolean(user.isAdmin);
   localStorage.setItem(SESSION_KEY, username);
-  state = loadState(username);
+  localStorage.setItem(ADMIN_SESSION_KEY, currentUserIsAdmin ? "yes" : "no");
+  state = remoteState || loadState(username);
   els.userPill.textContent = username;
   els.userPill.hidden = false;
+  els.adminPanel.hidden = !currentUserIsAdmin;
   closeGate();
   setMessage(`Welcome, ${username}. This is play money only.`);
   render();
+  if (currentUserIsAdmin) loadAdminSummary();
 }
 
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(API_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_SESSION_KEY);
   currentUser = null;
+  currentUserIsAdmin = false;
   state = createDefaultState();
   els.userPill.hidden = true;
+  els.adminPanel.hidden = true;
   els.authForm.reset();
   showAuthError("");
   openGate();
@@ -198,7 +234,7 @@ async function loginUser() {
     try {
       const data = await apiRequest("/api/login", { username, password });
       localStorage.setItem(API_TOKEN_KEY, data.token);
-      startSession(data.user.username);
+      startSession(data.user, data.state);
     } catch (error) {
       showAuthError(error.message);
     }
@@ -258,6 +294,63 @@ async function verifyEmail() {
     showAuthError("Email verified. You can log in now.");
   } catch (error) {
     showVerifyError(error.message);
+  }
+}
+
+function syncStateToBackend() {
+  if (!API_URL || !currentUser || !localStorage.getItem(API_TOKEN_KEY)) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    apiRequest("/api/state", { state }, { auth: true }).catch((error) => {
+      console.warn("Could not sync casino state.", error);
+    });
+  }, 250);
+}
+
+async function loadAdminSummary() {
+  if (!API_URL || !currentUserIsAdmin) return;
+  try {
+    const data = await apiRequest("/api/admin/summary", {}, { auth: true });
+    els.adminUsers.textContent = String(data.totals.users || 0);
+    els.adminWagered.textContent = money(data.totals.totalWagered || 0);
+    els.adminWon.textContent = money(data.totals.totalWon || 0);
+    els.adminBalance.textContent = money(data.totals.totalBalance || 0);
+    els.adminList.innerHTML = data.users.map((user) => `
+      <button class="admin-user" type="button" data-admin-user="${escapeHtml(user.username)}">
+        <strong>${escapeHtml(user.username)}${user.is_admin ? " admin" : ""}</strong>
+        <span>${money(user.balance)} balance</span>
+        <span>${money(user.wagered)} wagered</span>
+        <span>${money(user.won)} won</span>
+        <span>${user.games_played} games</span>
+      </button>
+    `).join("");
+    els.adminList.querySelectorAll("[data-admin-user]").forEach((button) => {
+      button.addEventListener("click", () => {
+        els.adminUsername.value = button.dataset.adminUser;
+      });
+    });
+  } catch (error) {
+    els.adminMessage.textContent = error.message;
+  }
+}
+
+async function addAdminMoney(event) {
+  event.preventDefault();
+  if (!currentUserIsAdmin) return;
+  els.adminMessage.textContent = "";
+  try {
+    const data = await apiRequest("/api/admin/add-money", {
+      username: els.adminUsername.value.trim(),
+      amount: Number(els.adminAmount.value)
+    }, { auth: true });
+    els.adminMessage.textContent = `Added money. ${data.user.username} balance is now ${money(data.user.balance)}.`;
+    if (data.user.username === currentUser) {
+      state.balance = data.user.balance;
+      render();
+    }
+    loadAdminSummary();
+  } catch (error) {
+    els.adminMessage.textContent = error.message;
   }
 }
 
@@ -904,6 +997,7 @@ els.verifyForm.addEventListener("submit", (event) => {
   verifyEmail();
 });
 els.backToLoginBtn.addEventListener("click", showLoginStep);
+els.adminMoneyForm.addEventListener("submit", addAdminMoney);
 window.addEventListener("resize", () => {
   els.canvas.width = window.innerWidth;
   els.canvas.height = window.innerHeight;
@@ -912,7 +1006,7 @@ window.addEventListener("resize", () => {
 els.rouletteNumber.disabled = true;
 const savedUser = localStorage.getItem(SESSION_KEY);
 if (savedUser && localStorage.getItem(AGE_KEY) === "yes") {
-  startSession(savedUser);
+  startSession({ username: savedUser, isAdmin: localStorage.getItem(ADMIN_SESSION_KEY) === "yes" });
 } else {
   openGate();
 }

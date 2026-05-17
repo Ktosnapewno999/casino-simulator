@@ -59,6 +59,11 @@ if [ ! -f "$APP_DIR/.env" ]; then
   printf "\n"
   read -r -p "From address [Casino Simulator <no-reply@casino.fans-only.me>]: " SMTP_FROM
   SMTP_FROM="${SMTP_FROM:-Casino Simulator <no-reply@casino.fans-only.me>}"
+  read -r -p "Admin username [admin]: " ADMIN_USERNAME
+  ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+  read -r -p "Admin email: " ADMIN_EMAIL
+  read -r -s -p "Admin password: " ADMIN_PASSWORD
+  printf "\n"
 
   cat > "$APP_DIR/.env" <<ENV
 PORT=$PORT
@@ -69,6 +74,9 @@ SMTP_PORT=587
 SMTP_USER=$SMTP_USER
 SMTP_PASS=$SMTP_PASS
 SMTP_FROM="$SMTP_FROM"
+ADMIN_USERNAME=$ADMIN_USERNAME
+ADMIN_EMAIL=$ADMIN_EMAIL
+ADMIN_PASSWORD=$ADMIN_PASSWORD
 ENV
   chmod 600 "$APP_DIR/.env"
 else

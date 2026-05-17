@@ -46,6 +46,9 @@ SMTP_USER=your-maileroo-smtp-username
 SMTP_PASS=your-maileroo-smtp-password
 SMTP_FROM="Casino Simulator <no-reply@casino.fans-only.me>"
 APP_ORIGIN=http://localhost:8123
+ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change-this-admin-password
 ```
 
 4. Start the backend:
@@ -67,6 +70,8 @@ window.CASINO_API_URL = "http://localhost:3000";
 ```
 
 Registration will save users to SQLite and send a verification code by email. If SMTP credentials are missing, the backend prints the verification code in the terminal for test use.
+
+Admin accounts are created from `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` when the backend starts. Admins can see user balances, total wagered/won, games played, and add play money from the in-app Admin panel.
 
 ## Raspberry Pi Backend Without Port Forwarding
 
