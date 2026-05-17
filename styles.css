@@ -27,6 +27,10 @@ body {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+body.locked {
+  overflow: hidden;
+}
+
 button,
 input {
   font: inherit;
@@ -112,6 +116,88 @@ h2 {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.user-pill {
+  min-height: 34px;
+  border: 1px solid rgba(243, 195, 91, 0.42);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: var(--gold);
+  background: rgba(243, 195, 91, 0.08);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(243, 195, 91, 0.16), transparent 28rem),
+    rgba(6, 8, 7, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.gate.active {
+  display: grid;
+}
+
+.gate-panel {
+  width: min(100%, 460px);
+  border: 1px solid rgba(243, 195, 91, 0.42);
+  border-radius: 8px;
+  background: #171c18;
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.gate-copy {
+  margin: 14px 0 22px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.gate-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.gate-actions .primary-button,
+.gate-actions .secondary-button {
+  width: auto;
+  min-width: 132px;
+  margin: 0;
+}
+
+.auth-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.auth-form label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.auth-form input {
+  width: 100%;
+}
+
+.auth-error {
+  min-height: 22px;
+  margin: 0;
+  color: #ffaaa5;
+  font-weight: 800;
 }
 
 main {
@@ -252,16 +338,32 @@ input {
   font-size: 7.2rem;
   font-weight: 900;
   box-shadow: inset 0 -18px 35px rgba(0, 0, 0, 0.12);
+  will-change: transform, filter;
 }
 
 .reel.spinning {
-  animation: reelPulse 0.18s linear infinite;
+  animation: reelGlow 0.28s linear infinite;
 }
 
-@keyframes reelPulse {
+.reel-stop {
+  animation: reelSettle 0.24s ease-out;
+}
+
+@keyframes reelGlow {
   50% {
-    transform: translateY(-4px);
     filter: brightness(1.15);
+  }
+}
+
+@keyframes reelSettle {
+  0% {
+    transform: translateY(-12px) scale(1.04);
+  }
+  70% {
+    transform: translateY(3px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -427,6 +529,7 @@ input {
 }
 
 .roulette-wheel {
+  --ball-radius: 155px;
   position: relative;
   display: grid;
   place-items: center;
@@ -437,7 +540,49 @@ input {
   border-radius: 50%;
   background:
     conic-gradient(from 5deg, #0f1010 0 10deg, #b62d29 10deg 20deg, #0f1010 20deg 30deg, #b62d29 30deg 40deg, #0f1010 40deg 50deg, #b62d29 50deg 60deg, #0f1010 60deg 70deg, #b62d29 70deg 80deg, #0f1010 80deg 90deg, #b62d29 90deg 100deg, #0f1010 100deg 110deg, #b62d29 110deg 120deg, #0f1010 120deg 130deg, #b62d29 130deg 140deg, #0f1010 140deg 150deg, #b62d29 150deg 160deg, #0f1010 160deg 170deg, #b62d29 170deg 180deg, #0f1010 180deg 190deg, #b62d29 190deg 200deg, #0f1010 200deg 210deg, #b62d29 210deg 220deg, #0f1010 220deg 230deg, #b62d29 230deg 240deg, #0f1010 240deg 250deg, #b62d29 250deg 260deg, #0f1010 260deg 270deg, #b62d29 270deg 280deg, #0f1010 280deg 290deg, #b62d29 290deg 300deg, #0f1010 300deg 310deg, #b62d29 310deg 320deg, #0f1010 320deg 330deg, #b62d29 330deg 340deg, #0f1010 340deg 350deg, #158452 350deg 360deg);
-  transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 3.2s cubic-bezier(0.08, 0.72, 0.12, 1);
+  will-change: transform;
+}
+
+.roulette-wheel::before,
+.roulette-wheel::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.roulette-wheel::before {
+  inset: 10%;
+  border: 2px dashed rgba(243, 195, 91, 0.32);
+}
+
+.roulette-wheel::after {
+  inset: -18px;
+  border: 2px solid rgba(243, 195, 91, 0.2);
+  box-shadow: 0 0 32px rgba(243, 195, 91, 0.2);
+}
+
+.roulette-wheel.spinning {
+  box-shadow: 0 0 42px rgba(243, 195, 91, 0.28), 0 22px 70px rgba(0, 0, 0, 0.42);
+}
+
+.roulette-wheel.settled .wheel-center {
+  animation: resultPop 0.6s ease-out;
+}
+
+.roulette-ball {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff7df;
+  box-shadow: 0 0 14px rgba(255, 247, 223, 0.95), inset -3px -4px 7px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%) rotate(0deg) translateY(calc(-1 * var(--ball-radius)));
+  transition: transform 3.2s cubic-bezier(0.1, 0.88, 0.22, 1);
+  z-index: 3;
 }
 
 .wheel-center {
@@ -451,6 +596,22 @@ input {
   color: #17110d;
   font-size: 3.4rem;
   font-weight: 900;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes resultPop {
+  0% {
+    transform: scale(0.88);
+    filter: brightness(1.6);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
 }
 
 .wheel-pointer {
@@ -642,6 +803,10 @@ input {
 
   .reel {
     font-size: 3.8rem;
+  }
+
+  .roulette-ball {
+    --ball-radius: 118px;
   }
 
   .card {

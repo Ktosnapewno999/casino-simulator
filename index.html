@@ -11,6 +11,36 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <div class="gate active" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+      <section class="gate-panel">
+        <div class="gate-warning" id="ageStep">
+          <p class="eyebrow">Age check</p>
+          <h2 id="gateTitle">This page is 18+</h2>
+          <p class="gate-copy">This is a play-money casino simulator. Confirm you are 18 or older to continue.</p>
+          <div class="gate-actions">
+            <button class="primary-button" id="ageConfirmBtn" type="button">I am 18+</button>
+            <button class="secondary-button" id="ageExitBtn" type="button">Leave</button>
+          </div>
+        </div>
+
+        <div class="auth-step" id="authStep" hidden>
+          <p class="eyebrow">Account</p>
+          <h2>Login or register</h2>
+          <form class="auth-form" id="authForm">
+            <label for="username">Username</label>
+            <input id="username" autocomplete="username" minlength="3" required type="text">
+            <label for="password">Password</label>
+            <input id="password" autocomplete="current-password" minlength="4" required type="password">
+            <p class="auth-error" id="authError" aria-live="polite"></p>
+            <div class="gate-actions">
+              <button class="primary-button" id="loginBtn" type="submit">Login</button>
+              <button class="secondary-button" id="registerBtn" type="button">Register</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+
     <div class="app">
       <header class="topbar" aria-label="Casino status">
         <div>
@@ -22,8 +52,9 @@
           <strong id="balance">$1,000</strong>
         </div>
         <div class="top-actions">
+          <span class="user-pill" id="userPill" hidden></span>
           <button class="icon-button" id="muteBtn" type="button" title="Toggle sounds" aria-label="Toggle sounds">♪</button>
-          <button class="secondary-button" id="resetBtn" type="button">Reset</button>
+          <button class="secondary-button" id="logoutBtn" type="button">Logout</button>
         </div>
       </header>
 
@@ -106,6 +137,7 @@
             </div>
             <div class="roulette-wheel" id="rouletteWheel" aria-live="polite">
               <div class="wheel-pointer"></div>
+              <div class="roulette-ball" id="rouletteBall"></div>
               <div class="wheel-center" id="rouletteResult">0</div>
             </div>
             <div class="roulette-bets" aria-label="Roulette bet type">

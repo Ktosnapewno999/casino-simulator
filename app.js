@@ -1,11 +1,15 @@
 const STARTING_BALANCE = 1000;
 const STORAGE_KEY = "casino-simulator-state-v1";
+const USERS_KEY = "casino-simulator-users-v1";
+const SESSION_KEY = "casino-simulator-session-v1";
+const AGE_KEY = "casino-simulator-age-ok-v1";
 const suits = ["♠", "♥", "♦", "♣"];
 const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 const slotSymbols = ["🍒", "🍋", "◆", "★", "BAR", "7"];
 const redNumbers = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
-const state = loadState();
+let currentUser = null;
+let state = createDefaultState();
 let activeGame = "slots";
 let blackjack = { deck: [], player: [], dealer: [], bet: 0, active: false, holeHidden: true };
 let craps = { point: 0, bet: 0 };
@@ -25,7 +29,8 @@ const els = {
   games: document.querySelectorAll(".game"),
   chips: document.querySelectorAll(".chip"),
   maxBetBtn: document.querySelector("#maxBetBtn"),
-  resetBtn: document.querySelector("#resetBtn"),
+  logoutBtn: document.querySelector("#logoutBtn"),
+  userPill: document.querySelector("#userPill"),
   muteBtn: document.querySelector("#muteBtn"),
   reels: [document.querySelector("#reelA"), document.querySelector("#reelB"), document.querySelector("#reelC")],
   spinBtn: document.querySelector("#spinBtn"),
@@ -37,8 +42,9 @@ const els = {
   hitBtn: document.querySelector("#hitBtn"),
   standBtn: document.querySelector("#standBtn"),
   rouletteWheel: document.querySelector("#rouletteWheel"),
+  rouletteBall: document.querySelector("#rouletteBall"),
   rouletteResult: document.querySelector("#rouletteResult"),
-  rouletteChoices: document.querySelectorAll(".choice"),
+  rouletteChoices: document.querySelectorAll("[data-roulette]"),
   rouletteNumber: document.querySelector("#rouletteNumber"),
   rouletteSpinBtn: document.querySelector("#rouletteSpinBtn"),
   dieA: document.querySelector("#dieA"),
@@ -55,14 +61,32 @@ const els = {
   pokerCards: document.querySelector("#pokerCards"),
   pokerDealBtn: document.querySelector("#pokerDealBtn"),
   pokerDrawBtn: document.querySelector("#pokerDrawBtn"),
+  gate: document.querySelector("#gate"),
+  ageStep: document.querySelector("#ageStep"),
+  authStep: document.querySelector("#authStep"),
+  ageConfirmBtn: document.querySelector("#ageConfirmBtn"),
+  ageExitBtn: document.querySelector("#ageExitBtn"),
+  authForm: document.querySelector("#authForm"),
+  username: document.querySelector("#username"),
+  password: document.querySelector("#password"),
+  authError: document.querySelector("#authError"),
+  registerBtn: document.querySelector("#registerBtn"),
   canvas: document.querySelector("#celebrationCanvas")
 };
 
 const ctx = els.canvas.getContext("2d");
 
-function loadState() {
+function createDefaultState() {
+  return { balance: STARTING_BALANCE, wagered: 0, won: 0, gamesPlayed: 0, bestWin: 0, history: [] };
+}
+
+function userStateKey(username) {
+  return `${STORAGE_KEY}-${username.toLowerCase()}`;
+}
+
+function loadState(username = currentUser) {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const saved = JSON.parse(localStorage.getItem(userStateKey(username)));
     if (saved && Number.isFinite(saved.balance)) {
       return {
         balance: saved.balance,
@@ -76,11 +100,99 @@ function loadState() {
   } catch (error) {
     console.warn("Could not load saved casino state.", error);
   }
-  return { balance: STARTING_BALANCE, wagered: 0, won: 0, gamesPlayed: 0, bestWin: 0, history: [] };
+  return createDefaultState();
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (currentUser) localStorage.setItem(userStateKey(currentUser), JSON.stringify(state));
+}
+
+function loadUsers() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY)) || {};
+  } catch (error) {
+    console.warn("Could not load users.", error);
+    return {};
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+function encodePassword(password) {
+  return btoa(unescape(encodeURIComponent(password)));
+}
+
+function showAuthError(message) {
+  els.authError.textContent = message;
+}
+
+function openGate() {
+  els.gate.classList.add("active");
+  document.body.classList.add("locked");
+  if (localStorage.getItem(AGE_KEY) === "yes") {
+    els.ageStep.hidden = true;
+    els.authStep.hidden = false;
+    setTimeout(() => els.username.focus(), 50);
+  }
+}
+
+function closeGate() {
+  els.gate.classList.remove("active");
+  document.body.classList.remove("locked");
+}
+
+function startSession(username) {
+  currentUser = username;
+  localStorage.setItem(SESSION_KEY, username);
+  state = loadState(username);
+  els.userPill.textContent = username;
+  els.userPill.hidden = false;
+  closeGate();
+  setMessage(`Welcome, ${username}. This is play money only.`);
+  render();
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  state = createDefaultState();
+  els.userPill.hidden = true;
+  els.authForm.reset();
+  showAuthError("");
+  openGate();
+  render();
+}
+
+function loginUser() {
+  const username = els.username.value.trim();
+  const password = els.password.value;
+  const users = loadUsers();
+
+  if (!users[username] || users[username].password !== encodePassword(password)) {
+    showAuthError("Wrong username or password.");
+    return;
+  }
+  startSession(username);
+}
+
+function registerUser() {
+  const username = els.username.value.trim();
+  const password = els.password.value;
+  const users = loadUsers();
+
+  if (username.length < 3 || password.length < 4) {
+    showAuthError("Use at least 3 characters for username and 4 for password.");
+    return;
+  }
+  if (users[username]) {
+    showAuthError("That username already exists.");
+    return;
+  }
+  users[username] = { password: encodePassword(password), createdAt: new Date().toISOString() };
+  saveUsers(users);
+  startSession(username);
 }
 
 function money(value) {
@@ -88,6 +200,7 @@ function money(value) {
 }
 
 function render() {
+  if (!currentUser) return;
   els.balance.textContent = money(state.balance);
   els.wagered.textContent = money(state.wagered);
   els.won.textContent = money(state.won);
@@ -171,26 +284,52 @@ function spinSlots() {
   if (!bet) return;
   beep();
   els.spinBtn.disabled = true;
-  els.reels.forEach((reel) => reel.classList.add("spinning"));
+  const result = els.reels.map(() => slotSymbols[randomInt(0, slotSymbols.length - 1)]);
+  const durations = [1250, 1625, 2025];
+  let finished = 0;
 
-  let ticks = 0;
-  const interval = setInterval(() => {
-    els.reels.forEach((reel) => {
-      reel.textContent = slotSymbols[randomInt(0, slotSymbols.length - 1)];
-    });
-    ticks += 1;
-    if (ticks >= 12) {
-      clearInterval(interval);
-      const result = els.reels.map(() => slotSymbols[randomInt(0, slotSymbols.length - 1)]);
-      els.reels.forEach((reel, index) => {
-        reel.textContent = result[index];
-        reel.classList.remove("spinning");
-      });
+  els.reels.forEach((reel, index) => animateReel(reel, result[index], durations[index], () => {
+    finished += 1;
+    if (finished === els.reels.length) {
       settleSlots(bet, result);
       els.spinBtn.disabled = false;
       render();
     }
-  }, 85);
+  }));
+}
+
+function animateReel(reel, finalSymbol, duration, onDone) {
+  const start = performance.now();
+  let lastSwap = 0;
+  reel.classList.add("spinning");
+
+  function frame(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const swapEvery = 34 + progress * 86;
+
+    if (now - lastSwap > swapEvery) {
+      reel.textContent = slotSymbols[randomInt(0, slotSymbols.length - 1)];
+      lastSwap = now;
+    }
+
+    reel.style.transform = `translateY(${Math.sin(elapsed / 38) * (1 - progress) * 14}px)`;
+    reel.style.filter = `brightness(${1 + (1 - progress) * 0.25})`;
+
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      reel.textContent = finalSymbol;
+      reel.style.transform = "";
+      reel.style.filter = "";
+      reel.classList.remove("spinning");
+      reel.classList.add("reel-stop");
+      setTimeout(() => reel.classList.remove("reel-stop"), 260);
+      onDone();
+    }
+  }
+
+  requestAnimationFrame(frame);
 }
 
 function settleSlots(bet, result) {
@@ -356,8 +495,11 @@ function spinRoulette() {
   const number = randomInt(0, 36);
   const activeChoice = document.querySelector("[data-roulette].active").dataset.roulette;
   const targetNumber = Math.max(0, Math.min(36, Math.floor(Number(els.rouletteNumber.value) || 0)));
-  const rotation = 720 + number * 37 + randomInt(0, 20);
+  const rotation = 1440 + number * 37 + randomInt(0, 20);
+  els.rouletteWheel.classList.add("spinning");
+  els.rouletteResult.textContent = "•";
   els.rouletteWheel.style.transform = `rotate(${rotation}deg)`;
+  els.rouletteBall.style.transform = `translate(-50%, -50%) rotate(${-rotation * 1.18}deg) translateY(calc(-1 * var(--ball-radius)))`;
 
   setTimeout(() => {
     els.rouletteResult.textContent = number;
@@ -385,8 +527,11 @@ function spinRoulette() {
       addHistory(`Roulette: ${number} ${color} lost ${money(bet)}`, "loss");
     }
     els.rouletteSpinBtn.disabled = false;
+    els.rouletteWheel.classList.remove("spinning");
+    els.rouletteWheel.classList.add("settled");
+    setTimeout(() => els.rouletteWheel.classList.remove("settled"), 700);
     render();
-  }, 950);
+  }, 3200);
 }
 
 function rollCraps() {
@@ -649,27 +794,7 @@ els.maxBetBtn.addEventListener("click", () => {
   els.betAmount.value = Math.max(1, state.balance);
   beep();
 });
-els.resetBtn.addEventListener("click", () => {
-  Object.assign(state, { balance: STARTING_BALANCE, wagered: 0, won: 0, gamesPlayed: 0, bestWin: 0, history: [] });
-  blackjack = { deck: [], player: [], dealer: [], bet: 0, active: false, holeHidden: true };
-  craps = { point: 0, bet: 0 };
-  poker = { deck: [], hand: [], holds: [], bet: 0, active: false };
-  els.dealerCards.innerHTML = "";
-  els.playerCards.innerHTML = "";
-  els.baccaratPlayerCards.innerHTML = "";
-  els.baccaratBankerCards.innerHTML = "";
-  els.pokerCards.innerHTML = "";
-  els.dealerScore.textContent = "0";
-  els.playerScore.textContent = "0";
-  els.baccaratPlayerScore.textContent = "0";
-  els.baccaratBankerScore.textContent = "0";
-  els.crapsPoint.textContent = "Off";
-  els.crapsHint.textContent = "Come-out roll: 7 or 11 wins, 2, 3, or 12 loses.";
-  els.pokerDealBtn.disabled = false;
-  els.pokerDrawBtn.disabled = true;
-  setMessage("Fresh bankroll loaded. Good luck.");
-  render();
-});
+els.logoutBtn.addEventListener("click", logout);
 els.muteBtn.addEventListener("click", () => {
   muted = !muted;
   els.muteBtn.textContent = muted ? "×" : "♪";
@@ -694,10 +819,29 @@ els.baccaratChoices.forEach((choice) => choice.addEventListener("click", () => {
 els.baccaratDealBtn.addEventListener("click", dealBaccarat);
 els.pokerDealBtn.addEventListener("click", dealPoker);
 els.pokerDrawBtn.addEventListener("click", drawPoker);
+els.ageConfirmBtn.addEventListener("click", () => {
+  localStorage.setItem(AGE_KEY, "yes");
+  els.ageStep.hidden = true;
+  els.authStep.hidden = false;
+  els.username.focus();
+});
+els.ageExitBtn.addEventListener("click", () => {
+  window.location.href = "about:blank";
+});
+els.authForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  loginUser();
+});
+els.registerBtn.addEventListener("click", registerUser);
 window.addEventListener("resize", () => {
   els.canvas.width = window.innerWidth;
   els.canvas.height = window.innerHeight;
 });
 
 els.rouletteNumber.disabled = true;
-render();
+const savedUser = localStorage.getItem(SESSION_KEY);
+if (savedUser && loadUsers()[savedUser] && localStorage.getItem(AGE_KEY) === "yes") {
+  startSession(savedUser);
+} else {
+  openGate();
+}
